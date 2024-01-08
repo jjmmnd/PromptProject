@@ -7,6 +7,7 @@
 * 2. 명령어의 대소문자를 구분하지 않기 위해서 고려된 부분
 * 3. 명령어 EXIT가 입력되었을 때 프로그램 종료방식
 */
+#define _CRT_SECURE_NO_WARNINGS
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -25,12 +26,12 @@ int CmdProcessing(void);
 TCHAR* StrLower(TCHAR*);
 
 
-int tmain(int argc, TCHAR* argv[])
+int _tmain(int argc, TCHAR* argv[])
 {
 	/*
 		유니코드 기반
 		한글 입력을 가능하게 하기 위해
-	*/
+	/*
 	_tsetlocale(LC_ALL, _T("Korean"));
 
 	DWORD isExit;
@@ -74,10 +75,9 @@ int CmdProcessing(void)
 	//토큰으로 분리하는 과정
 	while (token != NULL)
 	{
-		/*
-		* token에 NULL을 넣어서 무한루프를 방지?????????
-		* StrLower함수를 통해 대소문자의 구분을 없앰
-		*/
+	
+		// token에 NULL을 넣어서 무한루프를 방지?????????
+		// StrLower함수를 통해 대소문자의 구분을 없앰
 		_tcscpy(cmdTokenList[tokenNum++], StrLower(token));
 		token = _tcstok(NULL, seps);
 	}
