@@ -28,10 +28,9 @@ TCHAR* StrLower(TCHAR*);
 
 int _tmain(int argc, TCHAR* argv[])
 {
-	/*
-		유니코드 기반
-		한글 입력을 가능하게 하기 위해
-	/*
+
+	//유니코드 기반
+	//한글 입력을 가능하게 하기 위해
 	_tsetlocale(LC_ALL, _T("Korean"));
 
 	DWORD isExit;
