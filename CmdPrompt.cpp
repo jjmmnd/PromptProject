@@ -7,6 +7,13 @@
 * 2. 명령어의 대소문자를 구분하지 않기 위해서 고려된 부분
 * 3. 명령어 EXIT가 입력되었을 때 프로그램 종료방식
 */
+
+/*
+* 24.1.8
+* CommandPrompt_Two.cpp
+* 수정: 자식 프로세스 생성 코드 추가 + 추가 기능 수행
+*/
+
 #define _CRT_SECURE_NO_WARNINGS
 
 #include <stdio.h>
@@ -62,6 +69,15 @@ int CmdProcessing(void)
 	_getts_s(cmdString);	//_getts()함수 대신 사용
 
 	/*
+		프로세스 생성을 위한 두 개의 구조체 초기화
+	*/
+	STARTUPINFO si = { 0, };
+	PROCESS_INFORMATION pi = { 0, };
+	//구조체 변수의 크기 설정, 미래에 호환성을 위한 것
+	si.cb = sizeof(si);
+
+
+	/*
 	* char* strtok(char* s1, char* s2)
 	* 1. s1문자열에서 s2구분자를 통해 토큰을 추출
 	* 2. 토큰: 특정 구분자로 분리되는 최소 문장 요소
@@ -91,7 +107,9 @@ int CmdProcessing(void)
 	}
 	else
 	{
-		_tprintf(ERROR_CMD, cmdTokenList[0]);
+		BOOL newProcess = CreateProcess(NULL, cmdTokenList[0], NULL, NULL, TRUE, 0, NULL, NULL, &si, &pi);
+		if(newProcess == false)
+			_tprintf(ERROR_CMD, cmdTokenList[0]);
 	}
 	return 0;
 }
