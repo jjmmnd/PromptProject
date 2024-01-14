@@ -13,6 +13,7 @@
 * CommandPrompt_Two.cpp
 * 수정: 자식 프로세스 생성 코드 추가 + 추가 기능 수행
 */
+#define _CRT_SECURE_NO_WARNINGS
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -69,6 +70,7 @@ int CmdProcessing(void)
 	// 프로세스 생성을 위한 두 개의 구조체 초기화
 	STARTUPINFO si = { 0, };
 	PROCESS_INFORMATION pi = { 0, };
+
 	//구조체 변수의 크기 설정, 미래에 호환성을 위한 것
 	si.cb = sizeof(si);
 
@@ -103,7 +105,18 @@ int CmdProcessing(void)
 	}
 	else
 	{
+		// 프로세스 생성을 위한 두 개의 구조체 선언
+		STARTUPINFO si = { 0, };
+		PROCESS_INFORMATION pi;
+
+		// 구조체 변수의 크기 설정, 미래에 호환성을 위한 것
+		si.cb = sizeof(si);
+
+		// 직접 추가한 명령어가 아닐 시 표준 검색경로에 존재하는 실행파일을 실행
 		BOOL newProcess = CreateProcess(NULL, cmdTokenList[0], NULL, NULL, TRUE, 0, NULL, NULL, &si, &pi);
+
+		CloseHandle(pi.hProcess);
+		CloseHandle(pi.hThread);
 
 		if(newProcess == false)
 			_tprintf(ERROR_CMD, cmdTokenList[0]);
