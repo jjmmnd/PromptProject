@@ -14,8 +14,6 @@
 * 수정: 자식 프로세스 생성 코드 추가 + 추가 기능 수행
 */
 
-#define _CRT_SECURE_NO_WARNINGS
-
 #include <stdio.h>
 #include <stdlib.h>
 #include <tchar.h>
@@ -35,7 +33,6 @@ TCHAR* StrLower(TCHAR*);
 
 int _tmain(int argc, TCHAR* argv[])
 {
-
 	//유니코드 기반
 	//한글 입력을 가능하게 하기 위해
 	_tsetlocale(LC_ALL, _T("Korean"));
@@ -58,19 +55,18 @@ TCHAR cmdTokenList[CMD_TOKEN_NUM][STR_LEN];
 TCHAR seps[] = _T(",\t\n");	//?? 토큰 분리를 위한 구분자를 뜻함
 
 /*
-* 함수: TCHAR int CmdProcessing(void)
-* 기능: 명령어를 입력 받아서 해당 명령어에 지정되어 있는 기능을 수행
-* exit가 입력되면 TRUE를 반환하고, 프로그램의 종료로 이어진다.
-* 반환값: 명령어
+	함수: TCHAR int CmdProcessing(void)
+	기능: 명령어를 입력 받아서 해당 명령어에 지정되어 있는 기능을 수행
+		exit가 입력되면 TRUE를 반환하고, 프로그램의 종료로 이어진다.
+	반환값: 명령어
 */
 int CmdProcessing(void)
 {
 	_fputts(_T("Best command prompt>> "), stdout);
 	_getts_s(cmdString);	//_getts()함수 대신 사용
 
-	/*
-		프로세스 생성을 위한 두 개의 구조체 초기화
-	*/
+
+	// 프로세스 생성을 위한 두 개의 구조체 초기화
 	STARTUPINFO si = { 0, };
 	PROCESS_INFORMATION pi = { 0, };
 	//구조체 변수의 크기 설정, 미래에 호환성을 위한 것
@@ -78,11 +74,11 @@ int CmdProcessing(void)
 
 
 	/*
-	* char* strtok(char* s1, char* s2)
-	* 1. s1문자열에서 s2구분자를 통해 토큰을 추출
-	* 2. 토큰: 특정 구분자로 분리되는 최소 문장 요소
-	* 3. 반환값으로 문자열의 포인터 or NULL
-	* 4. 하나의 토큰만을 추출
+		char* strtok(char* s1, char* s2)
+		1. s1문자열에서 s2구분자를 통해 토큰을 추출
+		2. 토큰: 특정 구분자로 분리되는 최소 문장 요소
+		3. 반환값으로 문자열의 포인터 or NULL
+		4. 하나의 토큰만을 추출
 	*/
 	TCHAR* token = _tcstok(cmdString, seps);
 	int tokenNum = 0;
@@ -108,6 +104,7 @@ int CmdProcessing(void)
 	else
 	{
 		BOOL newProcess = CreateProcess(NULL, cmdTokenList[0], NULL, NULL, TRUE, 0, NULL, NULL, &si, &pi);
+
 		if(newProcess == false)
 			_tprintf(ERROR_CMD, cmdTokenList[0]);
 	}
