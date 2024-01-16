@@ -1,14 +1,4 @@
 /*
-* 24.1.7
-* CommandPrmpt_One
-* 프로그램 설명: 명령 프롬포트의 골격
-* 주목할 사항
-* 1. 명령어를 추가할 때 변경되는 부분
-* 2. 명령어의 대소문자를 구분하지 않기 위해서 고려된 부분
-* 3. 명령어 EXIT가 입력되었을 때 프로그램 종료방식
-*/
-
-/*
 * 24.1.8
 * CommandPrompt_Two
 * 수정: 자식 프로세스 생성 코드 추가 + 추가 기능 수행
@@ -23,7 +13,13 @@
 * 프로세스 생성 시 문자열 매개변수의 전달에 신경쓸 것
 */
 
-// Test
+/*
+* 24.1.16
+* CommandPrompt_Four
+* 수정: lp, kp 명령어 추가
+* lp: 현재 실행중인 프로세스 정보를 출력
+* kp: 이름으로 프로세스를 종료 
+*/
 
 #define _CRT_SECURE_NO_WARNINGS
 
@@ -32,6 +28,7 @@
 #include <tchar.h>
 #include <locale.h>	//한글 입력을 위한 헤더파일
 #include <Windows.h>
+#include <TlHelp32.h>
 
 #define STR_LEN	256
 #define CMD_TOKEN_NUM 10
@@ -48,6 +45,8 @@ TCHAR seps[] = _T(" ,\t\n");	// 띄어쓰기도 seps에 넣을 것, 안 넣어서 한참 오류 �
 int CmdTokenize(void);
 int CmdProcessing(int);
 TCHAR* StrLower(TCHAR*);
+void ListProcess();
+void KillProcess();
 
 int _tmain(int argc, TCHAR* argv[])
 {
@@ -75,6 +74,7 @@ int _tmain(int argc, TCHAR* argv[])
 			continue;
 
 		isExit = CmdProcessing(tokenNum);
+		// exit가 입력되면 
 		if (isExit == TRUE)
 		{
 			_fputts(_T("명령어 처리를 종료합니다. \n"), stdout);
@@ -143,15 +143,19 @@ int CmdProcessing(int tokenNum)
 		{
 			// start 명령어를 제외하고 문자열 재구성
 			for (int i = 1; i < tokenNum; i++)
+			{
 				// 문자열에 새로운 문자열을 저장할 때 쓰는 함수
 				_stprintf(optString, _T("%s %s"), optString, cmdTokenList[i]);
+			}
 			_stprintf(cmdStringWithOptions, _T("%s %s"), _T("CmdPromptProject.exe"), optString);
 		}
 		else
 			// start 명령어만 사용하는 경우
 			_stprintf(cmdStringWithOptions, _T("%s"), _T("CmdPromptProject.exe"));
 
-		isRun = CreateProcess(NULL, cmdStringWithOptions, NULL, NULL, TRUE, CREATE_NEW_CONSOLE, NULL, NULL, &si, &pi);
+		isRun = CreateProcess(
+			NULL, cmdStringWithOptions, NULL, NULL, 
+			TRUE, CREATE_NEW_CONSOLE, NULL, NULL, &si, &pi);
 
 		CloseHandle(pi.hProcess);
 		CloseHandle(pi.hThread);
@@ -160,8 +164,24 @@ int CmdProcessing(int tokenNum)
 	{
 		// 명령어 뒤 문자열을 그대로 출력
 		for (int i = 1; i < tokenNum; i++)
+		{
 			_stprintf(optString, _T("%s %s"), optString, cmdTokenList[i]);
+		}
 		_tprintf(_T("echo message: %s\n"), optString);
+	}
+	else if (!_tcscmp(cmdTokenList[0], _T("lp")))
+	{
+		ListProcess();
+	}
+	else if (!_tcscmp(cmdTokenList[0], _T("kp")))
+	{
+		if (tokenNum < 2)
+		{
+			_tprintf(_T("usage: kp <process name> \n"));
+			return 0;
+		}
+
+		KillProcess();
 	}
 	else
 	{
@@ -173,13 +193,16 @@ int CmdProcessing(int tokenNum)
 
 
 		// 직접 추가한 명령어가 아닐 시 표준 검색경로에 존재하는 실행파일을 실행
-		isRun = CreateProcess(NULL, cmdStringWithOptions, NULL, NULL, TRUE, NULL, NULL, NULL, &si, &pi);
+		isRun = CreateProcess(
+			NULL, cmdStringWithOptions, NULL, NULL, 
+			TRUE, NULL, NULL, NULL, &si, &pi);
 
 		CloseHandle(pi.hProcess);
 		CloseHandle(pi.hThread);
 
 		if (isRun == 0)
 		{
+			// 에러번호를 알기 위한 출력문 
 			DWORD error = GetLastError();
 			_tprintf(_T("CreateProcess가 오류 %lu로 실패했습니다.\n"), error);
 			_tprintf(ERROR_CMD, cmdTokenList[0]);
@@ -205,4 +228,93 @@ TCHAR* StrLower(TCHAR* pStr)
 	}
 
 	return ret;
+}
+
+/*
+	함수: void ListProcess()
+	기능: 현재 실행중인 프로세스의 정보를 출력
+*/
+void ListProcess()
+{
+	// 프로세스 정보를 얻기 위한 구조체 변수
+	PROCESSENTRY32 pe32;
+	pe32.dwSize = sizeof(PROCESSENTRY32);
+
+	// 현재 실행중인 프로세스의 스냅샷을 찍기
+	HANDLE processSnap = CreateToolhelp32Snapshot(TH32CS_SNAPPROCESS, 0);
+
+	if (processSnap == INVALID_HANDLE_VALUE)
+	{
+		_tprintf(_T("CreateToolhelp32Snapshot error\n"));
+		return;
+	}
+
+	if (!Process32First(processSnap, &pe32))
+	{
+		_tprintf(_T("Process32First Error\n"));
+		CloseHandle(processSnap);
+		return;
+	}
+
+	do
+	{
+		_tprintf(_T("%25s %5d\n"), pe32.szExeFile, pe32.th32ProcessID);
+	} while (Process32Next(processSnap, &pe32));
+
+	CloseHandle(processSnap);
+}
+
+/*
+	함수: void KillProcess()
+	기능: 원하는 프로세스의 이름으로 프로세스를 종료
+*/
+void KillProcess()
+{
+	HANDLE processSnap = CreateToolhelp32Snapshot(TH32CS_SNAPPROCESS, 0);
+	
+	if (processSnap == INVALID_HANDLE_VALUE)
+	{
+		_tprintf(_T("CreateToolhelp32Snapshot (of process)"));
+		return;
+	}
+
+	// 프로세스 정보를 얻기 위한 구조체 변수
+	PROCESSENTRY32 pe32;
+	pe32.dwSize = sizeof(PROCESSENTRY32);
+
+	// 첫번째 프로세스 정보
+	if (!Process32First(processSnap, &pe32))
+	{
+		_tprintf(_T("Process32First Error\n"));
+		CloseHandle(processSnap);
+		return;
+	}
+
+	HANDLE hProcess;	// 입력된 프로세스의 이름의 핸들을 담을 곳
+	BOOL isKill = FALSE;
+	do
+	{
+		// 입력된 프로세스의 이름과 비교해서 같다면
+		if (_tcscmp(pe32.szExeFile, cmdTokenList[1]) == 0)
+		{
+			// 프로세스 ID를 핸들로 변환
+			hProcess = OpenProcess(PROCESS_ALL_ACCESS, FALSE, pe32.th32ProcessID);
+			
+			if (hProcess != NULL)
+			{
+				// 프로세스를 강제종료
+				TerminateProcess(hProcess, -1);
+				isKill = TRUE;
+			}
+
+			CloseHandle(hProcess);
+			break;
+		}
+	} while (Process32Next(processSnap, &pe32));
+
+	CloseHandle(processSnap);
+	if (isKill == FALSE)
+	{
+		_tprintf(_T("Kill process fail.\n"));
+	}
 }
