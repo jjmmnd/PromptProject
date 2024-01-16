@@ -21,6 +21,13 @@
 * kp: 이름으로 프로세스를 종료 
 */
 
+/*
+* CommandPrompt_Five
+* 수정: sort 명령어 추가
+* 1. sort --> 문자열 정렬
+* 2. sort > sort.dat --> 출력 리다이렉션 
+*/
+
 #define _CRT_SECURE_NO_WARNINGS
 
 #include <stdio.h>
@@ -137,7 +144,7 @@ int CmdProcessing(int tokenNum)
 	else if (!_tcscmp(cmdTokenList[0], _T("start")))
 	{
 		// 새로운 프롬포트를 띄운 후 실행
-		// 실행파일의 이름 : CmdPrompt.exe
+		// 실행파일의 이름 : CmdPromptProject.exe
 		// 별도의 옵션 추가 필요
 		if (tokenNum > 1)
 		{
@@ -149,8 +156,8 @@ int CmdProcessing(int tokenNum)
 			}
 			_stprintf(cmdStringWithOptions, _T("%s %s"), _T("CmdPromptProject.exe"), optString);
 		}
+		// start 명령어만 사용하는 경우
 		else
-			// start 명령어만 사용하는 경우
 			_stprintf(cmdStringWithOptions, _T("%s"), _T("CmdPromptProject.exe"));
 
 		isRun = CreateProcess(
@@ -182,6 +189,44 @@ int CmdProcessing(int tokenNum)
 		}
 
 		KillProcess();
+	}
+	else if (!_tcscmp(cmdTokenList[0], _T("sort")))
+	{
+		// sort 명령어 뒤에 '> 파일명'이 오는 경우 
+		if (!_tcscmp(cmdTokenList[1], _T(">")))
+		{
+			// 리다이렉션의 대상 = 파일의 핸들은 상속 가능하도록
+			// 파일이 자식 프로세스 리다이렉션 대상이 된다 == 핸들의 상속
+			SECURITY_ATTRIBUTES fileSec = { sizeof(SECURITY_ATTRIBUTES),NULL,TRUE };
+
+			HANDLE hFile = CreateFile(
+				cmdTokenList[2], GENERIC_WRITE, FILE_SHARE_READ, &fileSec, CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, NULL);
+
+			si.hStdOutput = hFile;							// 출력 리다이렉션만 구현
+			si.hStdInput = GetStdHandle(STD_INPUT_HANDLE);	// 표준 입력을 리다이렉션하는 용도
+			si.hStdError = GetStdHandle(STD_ERROR_HANDLE);	// 표준 에러
+			si.dwFlags |= STARTF_USESTDHANDLES;				// 리다이렉션 정보를 반영하기 위해 
+
+			SetCurrentDirectory(_T("C:\\Users\\82104\\source\\repos\\sort\\Debug"));
+
+			isRun = CreateProcess(NULL, cmdTokenList[0], NULL, NULL,
+				TRUE, NULL, NULL, NULL, &si, &pi);
+
+			// 자식 프로세스가 종료될 때까지 대기
+			WaitForSingleObject(pi.hProcess, INFINITE);
+
+			// 리다이렉션 파일의 핸들 반환
+			CloseHandle(hFile);
+		}
+		else
+		{
+			isRun = CreateProcess(NULL, cmdTokenList[0], NULL, NULL,
+				TRUE, NULL, NULL, NULL, &si, &pi);
+
+			WaitForSingleObject(pi.hProcess, INFINITE);
+		}
+		CloseHandle(pi.hProcess);
+		CloseHandle(pi.hThread);
 	}
 	else
 	{
